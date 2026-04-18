@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(npx vite:*)",
+      "Bash(curl -sLO __TRACKED_VAR__/tiny_face_detector_model-weights_manifest.json)",
+      "Bash(curl -sLO __TRACKED_VAR__/tiny_face_detector_model-shard1)",
+      "Bash(curl -sLO __TRACKED_VAR__/face_landmark_68_model-weights_manifest.json)",
+      "Bash(curl -sLO __TRACKED_VAR__/face_landmark_68_model-shard1)",
+      "Bash(curl -sLO __TRACKED_VAR__/face_recognition_model-weights_manifest.json)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(kill %1)"
+    ]
+  }
+}
