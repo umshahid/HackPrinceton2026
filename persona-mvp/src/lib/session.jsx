@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { updateDailyMetrics, saveInteraction, saveMeal } from './storage.js'
-import { estimateMealNutrition, summarizeInteraction } from './geminiApi.js'
+import { updateDailyMetrics, saveInteraction, saveMeal, updatePerson } from './storage.js'
+import { estimateMealNutrition, summarizeInteraction, extractPersonName } from './geminiApi.js'
 import { matchOrCreatePerson } from './models/faceDetector.js'
 
 // ---------------------------------------------------------------------------
@@ -43,6 +43,7 @@ export function SessionProvider({ children }) {
   const [sessionStartTime, setSessionStartTime] = useState(null)
   const [currentScene, setCurrentScene] = useState(null)
   const [promptQueue, setPromptQueue] = useState([])
+  const [lastSavedAt, setLastSavedAt] = useState(null)
 
   const stateRef = useRef(state)
   const pollIntervalRef = useRef(pollInterval)
@@ -278,7 +279,18 @@ export function SessionProvider({ children }) {
           try {
             const { person } = await matchOrCreatePerson(interaction._descriptor, interaction._thumbnail)
             interaction.personId = person.id
-            console.log(`[Persona] Matched/created person id=${person.id}`)
+            console.log(`[Persona] Matched/created person id=${person.id} name="${person.name}"`)
+            if (/^Person \d+$/.test(person.name)) {
+              try {
+                const extractedName = await extractPersonName(interaction.transcript)
+                if (extractedName) {
+                  await updatePerson(person.id, { name: extractedName })
+                  console.log(`[Persona] Auto-named person ${person.id} → "${extractedName}"`)
+                }
+              } catch (err) {
+                console.warn('[Persona] extractPersonName failed:', err)
+              }
+            }
           } catch (err) {
             console.warn('[Persona] matchOrCreatePerson failed:', err)
           }
@@ -289,6 +301,7 @@ export function SessionProvider({ children }) {
         try {
           console.log(`[Persona] Saving interaction id=${interaction.id} personId=${interaction.personId} transcriptLen=${interaction.transcript.length}`)
           await saveInteraction(interaction)
+          setLastSavedAt(Date.now())
           console.log('[Persona] saveInteraction SUCCESS')
         } catch (err) {
           console.error('[Persona] saveInteraction FAILED:', err)
@@ -376,7 +389,18 @@ export function SessionProvider({ children }) {
         try {
           const { person } = await matchOrCreatePerson(interaction._descriptor, interaction._thumbnail)
           interaction.personId = person.id
-          console.log('[Persona] stopSession: matched person id=', person.id)
+          console.log('[Persona] stopSession: matched person id=', person.id, 'name=', person.name)
+          if (/^Person \d+$/.test(person.name)) {
+            try {
+              const extractedName = await extractPersonName(interaction.transcript)
+              if (extractedName) {
+                await updatePerson(person.id, { name: extractedName })
+                console.log(`[Persona] stopSession: auto-named person ${person.id} → "${extractedName}"`)
+              }
+            } catch (err) {
+              console.warn('[Persona] stopSession: extractPersonName failed:', err)
+            }
+          }
         } catch (err) {
           console.warn('[Persona] stopSession: matchOrCreatePerson failed:', err)
         }
@@ -387,6 +411,7 @@ export function SessionProvider({ children }) {
       try {
         console.log(`[Persona] stopSession: saving interaction id=${interaction.id} transcriptLen=${interaction.transcript.length}`)
         await saveInteraction(interaction)
+        setLastSavedAt(Date.now())
         console.log('[Persona] stopSession: saveInteraction SUCCESS')
       } catch (err) {
         console.error('[Persona] stopSession: saveInteraction FAILED:', err)
@@ -421,6 +446,7 @@ export function SessionProvider({ children }) {
     promptQueue,
     dismissPrompt,
     activePrompt,
+    lastSavedAt,
   }
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

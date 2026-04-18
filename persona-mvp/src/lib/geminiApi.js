@@ -106,3 +106,26 @@ Return a JSON object with this exact schema:
 
   return callGemini({ systemInstruction, userMessage, maxTokens: 800 })
 }
+
+/**
+ * Extract the person's name if they introduce themselves in the transcript.
+ * Returns the name string, or null if no name was found.
+ * @param {string} transcript
+ * @returns {Promise<string|null>}
+ */
+export async function extractPersonName(transcript) {
+  if (!transcript || transcript.trim().length < 5) return null
+
+  const systemInstruction = `You are an assistant that extracts a person's name from a conversation transcript. Only return a name if the person explicitly introduces themselves (e.g. "I'm Jason", "My name is Sarah", "Call me Mike"). If no clear self-introduction is present, return null. Always respond with valid JSON.`
+
+  const userMessage = `Does the person in this transcript introduce themselves by name?
+
+"""
+${transcript}
+"""
+
+Return a JSON object: { "name": "FirstName" } if a name was found, or { "name": null } if not.`
+
+  const result = await callGemini({ systemInstruction, userMessage, maxTokens: 50 })
+  return result?.name || null
+}

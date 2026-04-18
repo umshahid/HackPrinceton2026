@@ -5,15 +5,17 @@ let modelsLoaded = false
 let knownPersons = []
 let nextPersonId = 1
 
-function cosineSimilarity(a, b) {
-  let dot = 0, normA = 0, normB = 0
+function euclideanDistance(a, b) {
+  let sum = 0
   for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i]
-    normA += a[i] * a[i]
-    normB += b[i] * b[i]
+    const diff = a[i] - b[i]
+    sum += diff * diff
   }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB))
+  return Math.sqrt(sum)
 }
+
+// face-api standard threshold: distance < 0.5 = same person, > 0.5 = different
+const MATCH_THRESHOLD = 0.5
 
 export async function loadFaceModels() {
   if (modelsLoaded) return
@@ -73,18 +75,27 @@ export async function loadPersonsFromStorage() {
 }
 
 export async function matchOrCreatePerson(descriptor, thumbnailBase64) {
+  if (!descriptor) {
+    console.error('[FaceDetector] matchOrCreatePerson called with null descriptor')
+    throw new Error('descriptor is null')
+  }
+  console.log(`[FaceDetector] matchOrCreatePerson: descriptor length=${descriptor.length}, knownPersons=${knownPersons.length}`)
+
   let bestMatch = null
-  let bestSimilarity = -1
+  let bestDistance = Infinity
 
   for (const person of knownPersons) {
-    const similarity = cosineSimilarity(descriptor, person.descriptor)
-    if (similarity > bestSimilarity) {
-      bestSimilarity = similarity
+    const distance = euclideanDistance(descriptor, person.descriptor)
+    console.log(`[FaceDetector] vs person id=${person.id} name="${person.name}" distance=${distance.toFixed(4)}`)
+    if (distance < bestDistance) {
+      bestDistance = distance
       bestMatch = person
     }
   }
 
-  if (bestMatch && bestSimilarity > 0.85) {
+  console.log(`[FaceDetector] best match: id=${bestMatch?.id} distance=${bestDistance.toFixed(4)} threshold=${MATCH_THRESHOLD} → ${bestMatch && bestDistance < MATCH_THRESHOLD ? 'MATCHED' : 'NEW PERSON'}`)
+
+  if (bestMatch && bestDistance < MATCH_THRESHOLD) {
     return { person: bestMatch, isNew: false }
   }
 
