@@ -175,7 +175,8 @@ function AppContent() {
         canvas.height = imgData.height
         canvas.getContext('2d').putImageData(imgData, 0, 0)
         const result = await detectFace(canvas)
-        return { count: result.detected ? 1 : 0, ...result }
+        const thumbnailBase64 = result.detected ? cropFaceThumbnail(canvas, result.box) : null
+        return { count: result.detected ? 1 : 0, thumbnailBase64, ...result }
       },
       onFaceDetected: drawFaceBox,
       speechActive,

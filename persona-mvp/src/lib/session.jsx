@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useRef, useCallback, useEffect } f
 import { v4 as uuidv4 } from 'uuid'
 import { updateDailyMetrics, saveInteraction, saveMeal } from './storage.js'
 import { estimateMealNutrition, summarizeInteraction } from './geminiApi.js'
+import { matchOrCreatePerson } from './models/faceDetector.js'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -17,6 +18,8 @@ export const SessionState = {
 const FOOD_CONSECUTIVE_THRESHOLD = 3
 const FACE_CONSECUTIVE_THRESHOLD = 3
 const FOOD_ABSENT_RESET = 5
+const FACE_END_THRESHOLD = 8   // consecutive absent polls before ending an interaction
+const SPEECH_END_THRESHOLD = 5 // consecutive silent polls before treating speech as done
 
 // ---------------------------------------------------------------------------
 // Context
@@ -49,6 +52,10 @@ export function SessionProvider({ children }) {
   const faceConsecutiveCount = useRef(0)
   const currentInteraction = useRef(null)
   const mealPendingRef = useRef(false)
+  const lastFaceDescriptorRef = useRef(null)
+  const lastFaceThumbnailRef = useRef(null)
+  const faceAbsentCount = useRef(0)
+  const speechAbsentCount = useRef(0)
 
   useEffect(() => { stateRef.current = state }, [state])
   useEffect(() => { pollIntervalRef.current = pollInterval }, [pollInterval])
@@ -173,38 +180,78 @@ export function SessionProvider({ children }) {
       if (p.detectFaces) {
         try {
           const faceResult = await p.detectFaces(imageData)
-          console.log(`[Persona] Face: count=${faceResult.count}, consecutive=${faceConsecutiveCount.current}${faceResult.box ? `, box=${JSON.stringify(faceResult.box)}` : ''}`)
           if (faceResult.count > 0) {
             faceConsecutiveCount.current += 1
-            // Publish face box for overlay rendering
+            faceAbsentCount.current = 0
+            if (faceResult.descriptor) {
+              lastFaceDescriptorRef.current = faceResult.descriptor
+              lastFaceThumbnailRef.current = faceResult.thumbnailBase64 || null
+            }
+            console.log(`[Persona] Face: DETECTED consecutive=${faceConsecutiveCount.current} hasDescriptor=${!!faceResult.descriptor} hasThumbnail=${!!faceResult.thumbnailBase64}`)
             if (p.onFaceDetected) p.onFaceDetected(faceResult)
           } else {
             faceConsecutiveCount.current = 0
+            faceAbsentCount.current += 1
+            console.log(`[Persona] Face: ABSENT absent=${faceAbsentCount.current}/${FACE_END_THRESHOLD}`)
             if (p.onFaceDetected) p.onFaceDetected(null)
           }
         } catch (err) { console.warn('[Persona] Face error:', err) }
+      } else {
+        console.warn('[Persona] p.detectFaces not available')
       }
 
       // 5. Interaction detection
       const faceReady = faceConsecutiveCount.current >= FACE_CONSECUTIVE_THRESHOLD
       const isSpeaking = p.speechActive
-      console.log(`[Persona] Interaction check: faceReady=${faceReady} (${faceConsecutiveCount.current}/${FACE_CONSECUTIVE_THRESHOLD}), speaking=${isSpeaking}, activeInteraction=${!!currentInteraction.current}`)
+
+      if (isSpeaking === undefined) {
+        console.warn('[Persona] p.speechActive is undefined — audio monitoring may not be running')
+      }
+
+      if (isSpeaking) {
+        speechAbsentCount.current = 0
+      } else {
+        speechAbsentCount.current += 1
+      }
+
+      const faceGone = faceAbsentCount.current >= FACE_END_THRESHOLD
+      const speechGone = speechAbsentCount.current >= SPEECH_END_THRESHOLD
+      console.log(`[Persona] Interaction: faceReady=${faceReady}(${faceConsecutiveCount.current}/${FACE_CONSECUTIVE_THRESHOLD}) faceGone=${faceGone}(${faceAbsentCount.current}/${FACE_END_THRESHOLD}) isSpeaking=${isSpeaking} speechGone=${speechGone}(${speechAbsentCount.current}/${SPEECH_END_THRESHOLD}) active=${!!currentInteraction.current}`)
 
       if (faceReady && isSpeaking && !currentInteraction.current) {
+        console.log('[Persona] Interaction START — face ready + speaking detected')
         currentInteraction.current = {
           id: uuidv4(),
           startTime: new Date().toISOString(),
+          _descriptor: lastFaceDescriptorRef.current,
+          _thumbnail: lastFaceThumbnailRef.current,
         }
-        if (p.startTranscription) p.startTranscription()
-        pushPrompt({ type: 'INTERACTION_START', timestamp: new Date().toISOString() })
+        console.log(`[Persona] Interaction created id=${currentInteraction.current.id} hasDescriptor=${!!currentInteraction.current._descriptor}`)
+        if (p.startTranscription) {
+          p.startTranscription()
+          console.log('[Persona] startTranscription called')
+        } else {
+          console.warn('[Persona] p.startTranscription not available — transcript will be empty')
+        }
       }
 
-      if (currentInteraction.current && !faceReady && !isSpeaking) {
+      if (currentInteraction.current) {
+        const currentTranscript = p.transcript || ''
+        console.log(`[Persona] Active interaction transcript so far: ${currentTranscript.length} chars — "${currentTranscript.slice(0, 80)}${currentTranscript.length > 80 ? '…' : ''}"`)
+      }
+
+      if (currentInteraction.current && faceGone && speechGone) {
+        console.log('[Persona] Interaction END — face + speech both gone, saving...')
         let finalTranscript = p.transcript || ''
+        console.log(`[Persona] p.transcript at end: ${finalTranscript.length} chars`)
         if (p.stopTranscription) {
           const t = p.stopTranscription()
+          console.log(`[Persona] stopTranscription() returned: ${(t || '').length} chars — "${(t || '').slice(0, 80)}"`)
           if (t) finalTranscript = t
+        } else {
+          console.warn('[Persona] p.stopTranscription not available')
         }
+        console.log(`[Persona] Final transcript (${finalTranscript.length} chars): "${finalTranscript.slice(0, 120)}"`)
 
         const interaction = {
           ...currentInteraction.current,
@@ -213,8 +260,11 @@ export function SessionProvider({ children }) {
         }
 
         try {
+          console.log('[Persona] Calling summarizeInteraction...')
           interaction.summary = await summarizeInteraction(finalTranscript)
-        } catch {
+          console.log('[Persona] summarizeInteraction success:', JSON.stringify(interaction.summary).slice(0, 120))
+        } catch (err) {
+          console.error('[Persona] summarizeInteraction failed:', err)
           interaction.summary = {
             overview: 'Interaction completed.',
             key_topics: [],
@@ -224,10 +274,29 @@ export function SessionProvider({ children }) {
           }
         }
 
-        await saveInteraction(interaction)
-        pushPrompt({ type: 'INTERACTION_END', interaction, timestamp: new Date().toISOString() })
+        if (interaction._descriptor) {
+          try {
+            const { person } = await matchOrCreatePerson(interaction._descriptor, interaction._thumbnail)
+            interaction.personId = person.id
+            console.log(`[Persona] Matched/created person id=${person.id}`)
+          } catch (err) {
+            console.warn('[Persona] matchOrCreatePerson failed:', err)
+          }
+        }
+        delete interaction._descriptor
+        delete interaction._thumbnail
+
+        try {
+          console.log(`[Persona] Saving interaction id=${interaction.id} personId=${interaction.personId} transcriptLen=${interaction.transcript.length}`)
+          await saveInteraction(interaction)
+          console.log('[Persona] saveInteraction SUCCESS')
+        } catch (err) {
+          console.error('[Persona] saveInteraction FAILED:', err)
+        }
         currentInteraction.current = null
         faceConsecutiveCount.current = 0
+        faceAbsentCount.current = 0
+        speechAbsentCount.current = 0
       }
     } catch (err) {
       console.error('Poll frame error:', err)
@@ -252,6 +321,8 @@ export function SessionProvider({ children }) {
     foodConsecutiveCount.current = 0
     foodAbsentCount.current = 0
     faceConsecutiveCount.current = 0
+    faceAbsentCount.current = 0
+    speechAbsentCount.current = 0
     currentInteraction.current = null
     mealPendingRef.current = false
 
@@ -260,6 +331,7 @@ export function SessionProvider({ children }) {
   }, [onPollFrame])
 
   const stopSession = useCallback(async () => {
+    console.log('[Persona] stopSession called — currentInteraction exists:', !!currentInteraction.current)
     setState(SessionState.STOPPED)
     if (timerRef.current) {
       clearTimeout(timerRef.current)
@@ -268,11 +340,17 @@ export function SessionProvider({ children }) {
 
     if (currentInteraction.current) {
       const p = window.__persona
+      console.log('[Persona] stopSession: saving in-progress interaction id=', currentInteraction.current.id)
       let finalTranscript = p?.transcript || ''
+      console.log(`[Persona] stopSession: p.transcript=${finalTranscript.length} chars`)
       if (p?.stopTranscription) {
         const t = p.stopTranscription()
+        console.log(`[Persona] stopSession: stopTranscription() returned ${(t || '').length} chars`)
         if (t) finalTranscript = t
+      } else {
+        console.warn('[Persona] stopSession: p.stopTranscription not available')
       }
+      console.log(`[Persona] stopSession: finalTranscript ${finalTranscript.length} chars — "${finalTranscript.slice(0, 120)}"`)
 
       const interaction = {
         ...currentInteraction.current,
@@ -289,10 +367,33 @@ export function SessionProvider({ children }) {
 
       try {
         interaction.summary = await summarizeInteraction(finalTranscript)
-      } catch { /* keep default */ }
+        console.log('[Persona] stopSession: summarizeInteraction success')
+      } catch (err) {
+        console.error('[Persona] stopSession: summarizeInteraction failed:', err)
+      }
 
-      await saveInteraction(interaction)
+      if (interaction._descriptor) {
+        try {
+          const { person } = await matchOrCreatePerson(interaction._descriptor, interaction._thumbnail)
+          interaction.personId = person.id
+          console.log('[Persona] stopSession: matched person id=', person.id)
+        } catch (err) {
+          console.warn('[Persona] stopSession: matchOrCreatePerson failed:', err)
+        }
+      }
+      delete interaction._descriptor
+      delete interaction._thumbnail
+
+      try {
+        console.log(`[Persona] stopSession: saving interaction id=${interaction.id} transcriptLen=${interaction.transcript.length}`)
+        await saveInteraction(interaction)
+        console.log('[Persona] stopSession: saveInteraction SUCCESS')
+      } catch (err) {
+        console.error('[Persona] stopSession: saveInteraction FAILED:', err)
+      }
       currentInteraction.current = null
+    } else {
+      console.warn('[Persona] stopSession: no active interaction to save — was the interaction started? Check face/speech detection logs above.')
     }
   }, [])
 
