@@ -1,0 +1,33 @@
+# Core
+asyncio-compat>=0.1.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+loguru>=0.7.0
+
+# WhatsApp Bridge - Video/Audio capture
+mss>=9.0.0                  # Fast screen capture
+numpy>=1.26.0               # Array operations for frames
+opencv-python>=4.9.0        # Image processing
+Pillow>=10.0.0              # Image rendering
+pyvirtualcam>=0.11.0        # Virtual camera output (needs OBS VCam driver)
+
+# Audio
+sounddevice>=0.4.6          # Audio I/O
+pyaudiowpatch>=0.2.12       # WASAPI loopback capture (Windows)
+webrtcvad>=2.0.10           # Voice activity detection
+silero-vad>=5.1             # ML-based VAD (optional, better quality)
+
+# AI Engines
+google-genai>=1.0.0         # Gemini Live API
+anthropic>=0.40.0           # Claude API
+
+# TTS (fallback when not using Gemini native)
+edge-tts>=6.1.0             # Microsoft Edge TTS (free, good quality)
+
+# Actions
+pyautogui>=0.9.54           # Keyboard/mouse automation
+playwright>=1.40.0          # Web browser automation
+pygetwindow>=0.0.9          # Window management
+
+# HUD
+pygame>=2.5.0               # Frame rendering & animations
