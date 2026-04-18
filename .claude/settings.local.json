@@ -11,7 +11,10 @@
       "Bash(curl -sLO __TRACKED_VAR__/face_landmark_68_model-shard1)",
       "Bash(curl -sLO __TRACKED_VAR__/face_recognition_model-weights_manifest.json)",
       "Bash(curl -s http://localhost:5173)",
-      "Bash(kill %1)"
+      "Bash(kill %1)",
+      "Bash(npm uninstall:*)",
+      "Bash(curl -s 'https://ai.google.dev/gemini-api/docs/models')",
+      "WebFetch(domain:ai.google.dev)"
     ]
   }
 }

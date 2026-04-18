@@ -36,7 +36,7 @@ export function useSession() {
 
 export function SessionProvider({ children }) {
   const [state, setState] = useState(SessionState.IDLE)
-  const [pollInterval, setPollInterval] = useState(60)
+  const [pollInterval, setPollInterval] = useState(1)
   const [sessionStartTime, setSessionStartTime] = useState(null)
   const [currentScene, setCurrentScene] = useState(null)
   const [promptQueue, setPromptQueue] = useState([])
@@ -78,27 +78,34 @@ export function SessionProvider({ children }) {
     try {
       // 1. Capture frame
       const frame = p.captureFrame ? await p.captureFrame() : null
-      if (!frame) { schedulePoll(); return }
+      if (!frame) {
+        console.warn('[Persona] captureFrame returned null — camera not ready?')
+        schedulePoll()
+        return
+      }
 
       const { imageData } = frame
+      console.log(`[Persona] Poll: frame captured ${imageData.width}x${imageData.height}`)
 
       // 2. Scene classification
       if (p.classifyScene) {
         try {
           const scene = await p.classifyScene(imageData)
+          console.log(`[Persona] Scene: ${scene}`)
           setCurrentScene(scene)
           const validCategories = ['OUTSIDE', 'INSIDE', 'SCREEN']
           if (validCategories.includes(scene)) {
             const minutesToAdd = pollIntervalRef.current / 60
             await updateDailyMetrics(todayStr(), scene, minutesToAdd)
           }
-        } catch (err) { console.warn('Scene error:', err) }
+        } catch (err) { console.warn('[Persona] Scene error:', err) }
       }
 
       // 3. Food detection
       if (p.detectFood) {
         try {
           const foodResult = await p.detectFood(imageData)
+          console.log(`[Persona] Food: detected=${foodResult.detected}, labels=[${(foodResult.labels || []).slice(0, 3).join(', ')}], confidence=${foodResult.confidence?.toFixed(3)}`)
           if (foodResult.detected) {
             foodConsecutiveCount.current += 1
             foodAbsentCount.current = 0
@@ -166,17 +173,22 @@ export function SessionProvider({ children }) {
       if (p.detectFaces) {
         try {
           const faceResult = await p.detectFaces(imageData)
+          console.log(`[Persona] Face: count=${faceResult.count}, consecutive=${faceConsecutiveCount.current}${faceResult.box ? `, box=${JSON.stringify(faceResult.box)}` : ''}`)
           if (faceResult.count > 0) {
             faceConsecutiveCount.current += 1
+            // Publish face box for overlay rendering
+            if (p.onFaceDetected) p.onFaceDetected(faceResult)
           } else {
             faceConsecutiveCount.current = 0
+            if (p.onFaceDetected) p.onFaceDetected(null)
           }
-        } catch (err) { console.warn('Face error:', err) }
+        } catch (err) { console.warn('[Persona] Face error:', err) }
       }
 
       // 5. Interaction detection
       const faceReady = faceConsecutiveCount.current >= FACE_CONSECUTIVE_THRESHOLD
       const isSpeaking = p.speechActive
+      console.log(`[Persona] Interaction check: faceReady=${faceReady} (${faceConsecutiveCount.current}/${FACE_CONSECUTIVE_THRESHOLD}), speaking=${isSpeaking}, activeInteraction=${!!currentInteraction.current}`)
 
       if (faceReady && isSpeaking && !currentInteraction.current) {
         currentInteraction.current = {

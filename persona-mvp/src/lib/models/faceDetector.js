@@ -1,4 +1,4 @@
-import * as faceapi from 'face-api.js'
+import * as faceapi from '@vladmandic/face-api'
 import { savePerson, getPersons } from '../storage.js'
 
 let modelsLoaded = false

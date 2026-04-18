@@ -38,3 +38,6 @@ Thumbs.db
 
 # Node (just in case)
 node_modules/
+
+# Claude
+.claude

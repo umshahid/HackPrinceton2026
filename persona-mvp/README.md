@@ -25,7 +25,7 @@ Open `http://localhost:5173` in Chrome (required for Web Speech API). Accept the
 
 ## How It Works
 
-**Session loop** — Once started, the app polls the webcam at a configurable interval (default 60s). Each poll runs three ML pipelines in sequence:
+**Session loop** — Once started, the app polls the webcam at a configurable interval (default 1s). Each poll runs three ML pipelines in sequence:
 
 1. **Scene Classification** — MobileNet classifies each frame as Outside, Inside, or Screen. Time accumulates per category and persists daily. A warning fires after 90+ consecutive screen minutes.
 

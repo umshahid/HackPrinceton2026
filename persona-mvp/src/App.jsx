@@ -64,6 +64,8 @@ function AppContent() {
 
   // Visible video element for preview
   const previewRef = useRef(null)
+  const overlayCanvasRef = useRef(null)
+  const faceBoxRef = useRef(null)
 
   // Mirror camera stream to visible preview
   useEffect(() => {
@@ -105,6 +107,47 @@ function AppContent() {
     if (isListening) stopTranscription()
   }, [stopSession, stopAudioMonitoring, isListening, stopTranscription])
 
+  // Draw face bounding box on overlay canvas
+  const drawFaceBox = useCallback((faceResult) => {
+    faceBoxRef.current = faceResult
+    const canvas = overlayCanvasRef.current
+    const video = previewRef.current
+    if (!canvas || !video) return
+
+    const ctx = canvas.getContext('2d')
+    // Match canvas size to displayed video size
+    const rect = video.getBoundingClientRect()
+    canvas.width = rect.width
+    canvas.height = rect.height
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    if (!faceResult || !faceResult.box) return
+
+    const { box } = faceResult
+    // Scale from source video resolution to displayed size
+    const videoW = video.videoWidth || 640
+    const videoH = video.videoHeight || 480
+    const scaleX = rect.width / videoW
+    const scaleY = rect.height / videoH
+
+    // Mirror the x coordinate (video is mirrored via scaleX(-1))
+    const mirroredX = videoW - box.x - box.width
+
+    const dx = mirroredX * scaleX
+    const dy = box.y * scaleY
+    const dw = box.width * scaleX
+    const dh = box.height * scaleY
+
+    ctx.strokeStyle = '#4ade80'
+    ctx.lineWidth = 2
+    ctx.strokeRect(dx, dy, dw, dh)
+
+    // Label
+    ctx.fillStyle = '#4ade80'
+    ctx.font = '12px monospace'
+    ctx.fillText('Face detected', dx, dy - 6)
+  }, [])
+
   // Expose detection functions to session polling via window (simple bridge)
   useEffect(() => {
     window.__persona = {
@@ -134,12 +177,13 @@ function AppContent() {
         const result = await detectFace(canvas)
         return { count: result.detected ? 1 : 0, ...result }
       },
+      onFaceDetected: drawFaceBox,
       speechActive,
       transcript,
       startTranscription,
       stopTranscription,
     }
-  }, [captureFrame, speechActive, transcript, startTranscription, stopTranscription])
+  }, [captureFrame, drawFaceBox, speechActive, transcript, startTranscription, stopTranscription])
 
   const isRunning = state === SessionState.RUNNING
   const isStopped = state === SessionState.STOPPED
@@ -198,6 +242,14 @@ function AppContent() {
           ref={previewRef}
           autoPlay playsInline muted
           style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
+        />
+        <canvas
+          ref={overlayCanvasRef}
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            pointerEvents: 'none',
+          }}
         />
         {!cameraReady && (
           <div style={{
