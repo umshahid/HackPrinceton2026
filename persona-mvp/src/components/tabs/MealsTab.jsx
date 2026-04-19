@@ -264,7 +264,7 @@ export default function MealsTab() {
     return stored ? Number(stored) : 2000
   })
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
 
   const loadData = useCallback(async () => {
     const todayMeals = await getMealsByDate(todayStr)
@@ -276,7 +276,7 @@ export default function MealsTab() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
-      const ds = d.toISOString().split('T')[0]
+      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
       const dayMeals = await getMealsByDate(ds)
       const totalCal = dayMeals.reduce((sum, m) => sum + getMealCaloriesStatic(m), 0)
       days.push({ date: ds, day: getDayName(ds), calories: totalCal })
@@ -292,7 +292,7 @@ export default function MealsTab() {
     localStorage.setItem('persona_calorieTarget', String(calorieTarget))
   }, [calorieTarget])
 
-  const totalCalories = meals.reduce((sum, m) => sum + getMealCalories(m), 0)
+  const totalCalories = meals.reduce((sum, m) => sum + getMealCaloriesStatic(m), 0)
 
   const pct = calorieTarget > 0 ? (totalCalories / calorieTarget) * 100 : 0
 
@@ -434,7 +434,7 @@ export default function MealsTab() {
         )}
 
         <div style={styles.disclaimer}>
-          Estimates are \u00b120\u201330% accurate. Not a clinical nutrition tool.
+          Calorie counts are estimates.
         </div>
       </div>
     )
@@ -539,7 +539,7 @@ export default function MealsTab() {
       </div>
 
       <div style={styles.disclaimer}>
-        Estimates are \u00b120\u201330% accurate. Not a clinical nutrition tool.
+        Calorie counts are estimates.
       </div>
     </div>
   )

@@ -48,6 +48,9 @@ export function SessionProvider({ children }) {
   const stateRef = useRef(state)
   const pollIntervalRef = useRef(pollInterval)
   const timerRef = useRef(null)
+  const sceneAccumRef = useRef({ OUTSIDE: 0, INSIDE: 0, SCREEN: 0 })
+  const sceneFlushCounterRef = useRef(0)
+  const SCENE_FLUSH_EVERY = 30 // flush accumulated scene time every 30 polls
   const foodConsecutiveCount = useRef(0)
   const foodAbsentCount = useRef(0)
   const faceConsecutiveCount = useRef(0)
@@ -72,7 +75,19 @@ export function SessionProvider({ children }) {
 
   const activePrompt = promptQueue[0] || null
 
-  const todayStr = () => new Date().toISOString().slice(0, 10)
+  const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
+
+  const flushSceneMetrics = useCallback(async () => {
+    const accum = sceneAccumRef.current
+    const categories = ['OUTSIDE', 'INSIDE', 'SCREEN']
+    for (const cat of categories) {
+      if (accum[cat] > 0) {
+        await updateDailyMetrics(todayStr(), cat, accum[cat])
+        accum[cat] = 0
+      }
+    }
+    setLastSavedAt(Date.now())
+  }, [])
 
   // ---------------------------------------------------------------------------
   // Poll frame — reads detection functions from window.__persona
@@ -99,12 +114,15 @@ export function SessionProvider({ children }) {
       if (p.classifyScene) {
         try {
           const scene = await p.classifyScene(imageData)
-          console.log(`[Persona] Scene: ${scene}`)
           setCurrentScene(scene)
           const validCategories = ['OUTSIDE', 'INSIDE', 'SCREEN']
           if (validCategories.includes(scene)) {
-            const minutesToAdd = pollIntervalRef.current / 60
-            await updateDailyMetrics(todayStr(), scene, minutesToAdd)
+            sceneAccumRef.current[scene] += pollIntervalRef.current / 60
+          }
+          sceneFlushCounterRef.current += 1
+          if (sceneFlushCounterRef.current >= SCENE_FLUSH_EVERY) {
+            await flushSceneMetrics()
+            sceneFlushCounterRef.current = 0
           }
         } catch (err) { console.warn('[Persona] Scene error:', err) }
       }
@@ -338,6 +356,8 @@ export function SessionProvider({ children }) {
     speechAbsentCount.current = 0
     currentInteraction.current = null
     mealPendingRef.current = false
+    sceneAccumRef.current = { OUTSIDE: 0, INSIDE: 0, SCREEN: 0 }
+    sceneFlushCounterRef.current = 0
 
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => onPollFrame(), 2000)
@@ -345,6 +365,7 @@ export function SessionProvider({ children }) {
 
   const stopSession = useCallback(async () => {
     console.log('[Persona] stopSession called — currentInteraction exists:', !!currentInteraction.current)
+    await flushSceneMetrics()
     setState(SessionState.STOPPED)
     if (timerRef.current) {
       clearTimeout(timerRef.current)
@@ -420,7 +441,7 @@ export function SessionProvider({ children }) {
     } else {
       console.warn('[Persona] stopSession: no active interaction to save — was the interaction started? Check face/speech detection logs above.')
     }
-  }, [])
+  }, [flushSceneMetrics])
 
   const pauseSession = useCallback(() => {
     setState(SessionState.PAUSED)

@@ -170,7 +170,7 @@ const TOOLTIP_STYLE = {
 }
 
 export default function MetricsTab() {
-  const { currentScene, state: sessionState } = useSession()
+  const { currentScene, lastSavedAt } = useSession()
   const [todayMetrics, setTodayMetrics] = useState({ OUTSIDE: 0, INSIDE: 0, SCREEN: 0 })
   const [weekMetrics, setWeekMetrics] = useState([])
   const [outsideTarget, setOutsideTarget] = useState(() => {
@@ -182,7 +182,7 @@ export default function MetricsTab() {
     return stored ? Number(stored) : 360
   })
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
 
   const loadData = useCallback(async () => {
     const [daily, weekly] = await Promise.all([
@@ -195,7 +195,7 @@ export default function MetricsTab() {
 
   useEffect(() => {
     loadData()
-  }, [loadData, sessionState])
+  }, [loadData, lastSavedAt])
 
   // Persist targets
   useEffect(() => {

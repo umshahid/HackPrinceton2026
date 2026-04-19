@@ -468,7 +468,7 @@ export default function PeopleTab() {
             <div
               key={person.id}
               style={styles.personCard}
-              onClick={() => setSelectedPerson(person)}
+              onClick={() => editingId !== person.id && setSelectedPerson(person)}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e1e2e')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#16161f')}
             >
@@ -483,7 +483,44 @@ export default function PeopleTab() {
                   <InitialsAvatar name={person.name} id={person.id} size={96} fontSize={34} />
                 )}
               </div>
-              <div style={styles.personName}>{person.name || 'Unknown'}</div>
+
+              {editingId === person.id ? (
+                <input
+                  style={{
+                    ...styles.renameInput,
+                    fontSize: 13,
+                    padding: '3px 6px',
+                    textAlign: 'center',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename(person.id)
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  onBlur={() => handleRename(person.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}>
+                  <div style={{ ...styles.personName, margin: 0 }}>{person.name || 'Unknown'}</div>
+                  <button
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8888a0', fontSize: 12, padding: '0 2px', lineHeight: 1 }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditingId(person.id)
+                      setEditName(person.name || '')
+                    }}
+                    title="Rename"
+                  >
+                    ✎
+                  </button>
+                </div>
+              )}
+
               <div style={styles.interactionCount}>
                 {interactionCountByPerson[person.id] || 0} interactions
               </div>
