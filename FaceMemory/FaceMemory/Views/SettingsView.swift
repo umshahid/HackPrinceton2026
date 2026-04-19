@@ -26,10 +26,12 @@ struct SettingsView: View {
                     LabeledContent("Streaming", value: stream.isStreaming ? "Yes" : "No")
 
                     Button("Register with Meta AI app") {
+                        print("[FaceMemory] Register button tapped")
                         stream.startRegistration()
                     }
                     if stream.isRegistered {
                         Button("Unregister", role: .destructive) {
+                            print("[FaceMemory] Unregister button tapped")
                             stream.startUnregistration()
                         }
                     }

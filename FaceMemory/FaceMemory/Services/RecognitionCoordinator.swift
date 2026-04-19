@@ -94,7 +94,7 @@ final class RecognitionCoordinator: ObservableObject {
                    candidate.count >= requiredConsecutiveMatches {
                     state = .matched(
                         personID: match.person.id,
-                        similarity: match.similarity,
+                        similarity: 1.0 - min(match.distance / 2.0, 1.0),  // convert distance to rough similarity %
                         name: match.person.name
                     )
                     match.person.lastSeenDate = Date()
