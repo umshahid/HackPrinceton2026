@@ -44,6 +44,29 @@ export async function deletePerson(id) {
 export async function saveInteraction(interaction) {
   const key = `interaction:${interaction.id}`
   await localforage.setItem(key, interaction)
+
+  try {
+    const person = await localforage.getItem('person:' + interaction.personId)
+    const s = interaction.summary || {}
+    await fetch('http://172.20.6.125:8766/card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: person?.name || 'Unknown',
+        subtitle: [
+          { positive: 'Positive chat', neutral: 'Neutral chat', tense: 'Tense chat' }[s.sentiment] || '',
+          s.duration_minutes ? `${s.duration_minutes} min` : '',
+        ].filter(Boolean).join(' · '),
+        lines: [
+          s.overview             && { label: 'Overview',     value: s.overview },
+          s.key_topics?.length   && { label: 'Topics',       value: s.key_topics.join(', ') },
+          s.action_items?.length && { label: 'Action items', value: s.action_items.join(' · ') },
+        ].filter(Boolean),
+        ttl_sec: 20,
+      }),
+    })
+  } catch (e) { console.warn('[hud bridge]', e) }
+
   return interaction
 }
 

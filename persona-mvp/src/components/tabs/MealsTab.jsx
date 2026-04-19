@@ -6,20 +6,22 @@ const styles = {
   container: {
     padding: 16,
     minHeight: '100%',
+    background: 'var(--surface)',
   },
   sectionTitle: {
-    color: '#e8e8ed',
+    color: '#191c18',
     fontSize: 16,
     fontWeight: 600,
+    fontFamily: 'Manrope, sans-serif',
     marginBottom: 12,
     marginTop: 20,
   },
   card: {
-    backgroundColor: '#16161f',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: '1.5rem',
     padding: 16,
     marginBottom: 12,
-    border: '1px solid #2a2a3a',
+    boxShadow: '0 4px 40px rgba(85,98,77,0.06)',
   },
   calorieHeader: {
     display: 'flex',
@@ -28,54 +30,55 @@ const styles = {
     marginBottom: 8,
   },
   calorieTotal: {
-    color: '#e8e8ed',
-    fontSize: 24,
+    color: '#191c18',
+    fontSize: 28,
     fontWeight: 700,
+    fontFamily: 'Manrope, sans-serif',
   },
   calorieTarget: {
-    color: '#8888a0',
-    fontSize: 14,
+    color: '#444841',
+    fontSize: 13,
   },
   progressBarOuter: {
-    height: 10,
-    backgroundColor: '#2a2a3a',
-    borderRadius: 5,
+    height: 8,
+    backgroundColor: '#ecefe8',
+    borderRadius: 9999,
     overflow: 'hidden',
   },
   progressBarInner: {
     height: '100%',
-    borderRadius: 5,
-    transition: 'width 0.3s ease',
+    borderRadius: 9999,
+    transition: 'width 400ms ease-in-out',
   },
   targetInput: {
     width: 60,
     padding: '3px 6px',
     borderRadius: 6,
-    border: '1px solid #2a2a3a',
-    backgroundColor: '#0a0a0f',
-    color: '#e8e8ed',
+    border: '1px solid rgba(197,200,190,0.5)',
+    backgroundColor: '#f2f4ed',
+    color: '#191c18',
     fontSize: 12,
     textAlign: 'right',
     outline: 'none',
     marginLeft: 6,
   },
   mealCard: {
-    backgroundColor: '#16161f',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: '1.5rem',
     padding: 14,
     marginBottom: 10,
-    border: '1px solid #2a2a3a',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    transition: 'background-color 0.15s',
+    transition: 'background-color 400ms ease-in-out',
+    boxShadow: '0 4px 40px rgba(85,98,77,0.06)',
   },
   mealThumb: {
     width: 48,
     height: 48,
-    borderRadius: 8,
-    backgroundColor: '#2a2a3a',
+    borderRadius: '0.75rem',
+    backgroundColor: '#ecefe8',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -88,23 +91,25 @@ const styles = {
     minWidth: 0,
   },
   mealName: {
-    color: '#e8e8ed',
+    color: '#191c18',
     fontSize: 14,
     fontWeight: 600,
+    fontFamily: 'Manrope, sans-serif',
     marginBottom: 2,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
   mealMeta: {
-    color: '#8888a0',
+    color: '#444841',
     fontSize: 12,
   },
   mealCal: {
-    color: '#fbbf24',
+    color: '#55624d',
     fontSize: 14,
-    fontWeight: 600,
+    fontWeight: 700,
     flexShrink: 0,
+    fontFamily: 'Manrope, sans-serif',
   },
   detailHeader: {
     display: 'flex',
@@ -115,35 +120,37 @@ const styles = {
   backBtn: {
     background: 'none',
     border: 'none',
-    color: '#60a5fa',
+    color: '#55624d',
     fontSize: 14,
     cursor: 'pointer',
     padding: '4px 8px',
     borderRadius: 6,
+    fontWeight: 600,
   },
   detailTitle: {
-    color: '#e8e8ed',
+    color: '#191c18',
     fontSize: 18,
     fontWeight: 700,
+    fontFamily: 'Manrope, sans-serif',
     flex: 1,
   },
   deleteBtn: {
     background: 'none',
-    border: '1px solid #f8717140',
-    color: '#f87171',
+    border: '1px solid rgba(220,38,38,0.25)',
+    color: '#dc2626',
     fontSize: 12,
     cursor: 'pointer',
-    padding: '4px 10px',
-    borderRadius: 6,
+    padding: '4px 12px',
+    borderRadius: 9999,
   },
   editBtn: {
     background: 'none',
-    border: '1px solid #2a2a3a',
-    color: '#8888a0',
+    border: '1px solid rgba(197,200,190,0.7)',
+    color: '#444841',
     fontSize: 12,
     cursor: 'pointer',
-    padding: '4px 10px',
-    borderRadius: 6,
+    padding: '4px 12px',
+    borderRadius: 9999,
   },
   table: {
     width: '100%',
@@ -152,33 +159,32 @@ const styles = {
   },
   th: {
     textAlign: 'left',
-    color: '#8888a0',
+    color: '#444841',
     fontWeight: 500,
     padding: '6px 8px',
-    borderBottom: '1px solid #2a2a3a',
-    fontSize: 11,
+    fontSize: '0.625rem',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: '0.1em',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
   },
   td: {
-    color: '#e8e8ed',
+    color: '#191c18',
     padding: '8px 8px',
-    borderBottom: '1px solid #2a2a3a10',
   },
   confidenceBadge: {
     display: 'inline-block',
-    padding: '2px 8px',
-    borderRadius: 10,
+    padding: '3px 10px',
+    borderRadius: 9999,
     fontSize: 11,
     fontWeight: 600,
   },
   editInput: {
-    backgroundColor: '#0a0a0f',
-    border: '1px solid #60a5fa',
-    color: '#e8e8ed',
+    backgroundColor: '#f2f4ed',
+    border: '1px solid #55624d',
+    color: '#191c18',
     fontSize: 13,
-    padding: '4px 6px',
-    borderRadius: 6,
+    padding: '4px 8px',
+    borderRadius: '0.75rem',
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
@@ -188,22 +194,21 @@ const styles = {
     marginTop: 8,
   },
   emptyState: {
-    color: '#8888a0',
+    color: '#444841',
     textAlign: 'center',
     padding: '60px 20px',
     fontSize: 14,
     lineHeight: 1.6,
   },
   disclaimer: {
-    color: '#8888a0',
+    color: '#9ca3af',
     fontSize: 11,
     textAlign: 'center',
     marginTop: 24,
     padding: '12px 0',
-    borderTop: '1px solid #2a2a3a',
   },
   timestamp: {
-    color: '#8888a0',
+    color: '#444841',
     fontSize: 12,
     marginBottom: 12,
   },
@@ -222,17 +227,17 @@ function formatCalories(n) {
 }
 
 function getConfidenceStyle(confidence) {
-  if (!confidence) return { backgroundColor: '#2a2a3a', color: '#8888a0' }
+  if (!confidence) return { backgroundColor: '#ecefe8', color: '#444841' }
   const c = confidence.toLowerCase()
-  if (c === 'high') return { backgroundColor: '#4ade8020', color: '#4ade80' }
-  if (c === 'medium') return { backgroundColor: '#fbbf2420', color: '#fbbf24' }
-  return { backgroundColor: '#f8717120', color: '#f87171' }
+  if (c === 'high') return { backgroundColor: '#d9e7cd', color: '#55624d' }
+  if (c === 'medium') return { backgroundColor: '#fef3c7', color: '#92400e' }
+  return { backgroundColor: '#fee2e2', color: '#dc2626' }
 }
 
 function getProgressColor(pct) {
-  if (pct > 100) return '#f87171'
-  if (pct >= 80) return '#fbbf24'
-  return '#4ade80'
+  if (pct > 100) return '#dc2626'
+  if (pct >= 80) return '#f59e0b'
+  return '#55624d'
 }
 
 function getDayName(dateStr) {
@@ -241,11 +246,11 @@ function getDayName(dateStr) {
 }
 
 const TOOLTIP_STYLE = {
-  backgroundColor: '#16161f',
-  border: '1px solid #2a2a3a',
+  backgroundColor: '#ffffff',
   borderRadius: 8,
-  color: '#e8e8ed',
+  color: '#191c18',
   fontSize: 12,
+  boxShadow: '0 4px 20px rgba(85,98,77,0.10)',
 }
 
 // Static helper for use outside the component (e.g., in loadData)
@@ -383,7 +388,7 @@ export default function MealsTab() {
         {editing ? (
           <div style={styles.card}>
             <div style={{ marginBottom: 10 }}>
-              <label style={{ color: '#8888a0', fontSize: 12, display: 'block', marginBottom: 4 }}>Calories</label>
+              <label style={{ color: '#444841', fontSize: 12, display: 'block', marginBottom: 4 }}>Calories</label>
               <input
                 style={styles.editInput}
                 type="number"
@@ -394,7 +399,7 @@ export default function MealsTab() {
           </div>
         ) : (
           <div style={styles.card}>
-            <div style={{ color: '#fbbf24', fontSize: 22, fontWeight: 700, marginBottom: 12 }}>
+            <div style={{ color: '#55624d', fontSize: 28, fontWeight: 700, marginBottom: 12, fontFamily: 'Manrope, sans-serif' }}>
               {formatCalories(getMealCalories(meal))} kcal
             </div>
 
@@ -426,7 +431,7 @@ export default function MealsTab() {
             )}
 
             {items.length === 0 && (
-              <div style={{ color: '#8888a0', fontSize: 13 }}>
+              <div style={{ color: '#444841', fontSize: 13 }}>
                 No item breakdown available.
               </div>
             )}
@@ -484,8 +489,8 @@ export default function MealsTab() {
             key={meal.id}
             style={styles.mealCard}
             onClick={() => setSelectedMeal(meal)}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e1e2e')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#16161f')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f2f4ed')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
           >
             <div style={styles.mealThumb}>
               {meal.snapshot ? (
@@ -514,12 +519,12 @@ export default function MealsTab() {
           <BarChart data={weekData}>
             <XAxis
               dataKey="day"
-              tick={{ fill: '#8888a0', fontSize: 12 }}
+              tick={{ fill: '#444841', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: '#8888a0', fontSize: 11 }}
+              tick={{ fill: '#444841', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
@@ -533,7 +538,7 @@ export default function MealsTab() {
               strokeDasharray="4 4"
               strokeWidth={1.5}
             />
-            <Bar dataKey="calories" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="calories" fill="#98a68e" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
