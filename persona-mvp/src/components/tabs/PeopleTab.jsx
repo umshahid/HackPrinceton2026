@@ -211,6 +211,40 @@ const styles = {
   },
 }
 
+const AVATAR_COLORS = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777']
+
+function avatarColor(id) {
+  return AVATAR_COLORS[(id || 0) % AVATAR_COLORS.length]
+}
+
+function getInitials(name) {
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+function InitialsAvatar({ name, id, size = 96, fontSize = 34 }) {
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      backgroundColor: avatarColor(id),
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize,
+      fontWeight: 700,
+      color: '#fff',
+      flexShrink: 0,
+      userSelect: 'none',
+    }}>
+      {getInitials(name)}
+    </div>
+  )
+}
+
 function formatDate(isoStr) {
   if (!isoStr) return ''
   const d = new Date(isoStr)
@@ -242,10 +276,10 @@ function InteractionEntry({ interaction, person, onDelete }) {
     <div style={styles.interactionCard}>
       <div style={styles.interactionHeader}>
         <div style={styles.smallThumb}>
-          {person?.faceThumbnail ? (
-            <img src={person.faceThumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {person?.thumbnail ? (
+            <img src={person.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
           ) : (
-            '\u{1F464}'
+            <InitialsAvatar name={person?.name} id={person?.id} size={40} fontSize={15} />
           )}
         </div>
         <div style={styles.interactionMeta}>
@@ -301,7 +335,7 @@ export default function PeopleTab() {
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
 
-  const { state } = useSession()
+  const { lastSavedAt } = useSession()
 
   const loadData = useCallback(async () => {
     const [p, i] = await Promise.all([getPersons(), getAllInteractions()])
@@ -311,7 +345,7 @@ export default function PeopleTab() {
 
   useEffect(() => {
     loadData()
-  }, [loadData, state])
+  }, [loadData, lastSavedAt])
 
   const interactionCountByPerson = interactions.reduce((acc, i) => {
     if (i.personId) acc[i.personId] = (acc[i.personId] || 0) + 1
@@ -434,22 +468,59 @@ export default function PeopleTab() {
             <div
               key={person.id}
               style={styles.personCard}
-              onClick={() => setSelectedPerson(person)}
+              onClick={() => editingId !== person.id && setSelectedPerson(person)}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e1e2e')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#16161f')}
             >
               <div style={styles.thumbnail}>
-                {person.faceThumbnail ? (
+                {person.thumbnail ? (
                   <img
-                    src={person.faceThumbnail}
+                    src={person.thumbnail}
                     alt={person.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                   />
                 ) : (
-                  '\u{1F464}'
+                  <InitialsAvatar name={person.name} id={person.id} size={96} fontSize={34} />
                 )}
               </div>
-              <div style={styles.personName}>{person.name || 'Unknown'}</div>
+
+              {editingId === person.id ? (
+                <input
+                  style={{
+                    ...styles.renameInput,
+                    fontSize: 13,
+                    padding: '3px 6px',
+                    textAlign: 'center',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename(person.id)
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  onBlur={() => handleRename(person.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}>
+                  <div style={{ ...styles.personName, margin: 0 }}>{person.name || 'Unknown'}</div>
+                  <button
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8888a0', fontSize: 12, padding: '0 2px', lineHeight: 1 }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditingId(person.id)
+                      setEditName(person.name || '')
+                    }}
+                    title="Rename"
+                  >
+                    ✎
+                  </button>
+                </div>
+              )}
+
               <div style={styles.interactionCount}>
                 {interactionCountByPerson[person.id] || 0} interactions
               </div>

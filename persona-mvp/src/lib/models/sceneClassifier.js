@@ -38,42 +38,33 @@ export async function classifyScene(imageElement) {
   const m = await loadSceneModel()
   const predictions = await m.classify(imageElement, 5)
 
-  const top = predictions[0]
-
-  if (top.probability < 0.60) {
-    return {
-      label: 'UNCERTAIN',
-      confidence: top.probability,
-      rawPredictions: predictions,
-      screenWarning: false
-    }
-  }
-
-  // Check all predictions for category keywords, prioritising higher-confidence ones
-  let bestCategory = null
-  let bestConfidence = 0
-
+  // Score each category by summing prediction probabilities for matching keywords
+  const scores = { SCREEN: 0, OUTSIDE: 0, INSIDE: 0 }
   for (const pred of predictions) {
     const cat = matchCategory(pred.className)
-    if (cat && pred.probability > bestConfidence) {
+    if (cat) scores[cat] += pred.probability
+  }
+
+  // Pick highest scoring category; default to INSIDE when nothing matches
+  let bestCategory = 'INSIDE'
+  let bestScore = 0
+  for (const [cat, score] of Object.entries(scores)) {
+    if (score > bestScore) {
+      bestScore = score
       bestCategory = cat
-      bestConfidence = pred.probability
     }
   }
 
-  // Default to INSIDE when no keywords match but confidence is high enough
-  if (!bestCategory) {
-    bestCategory = 'INSIDE'
-    bestConfidence = top.probability
-  }
+  const topConfidence = predictions[0]?.probability ?? 0
+  console.log(`[Scene] ${bestCategory} (score=${bestScore.toFixed(3)}) top="${predictions[0]?.className}" (${topConfidence.toFixed(3)})`)
 
   const screenWarning = consecutiveScreenMinutes >= 90
 
   return {
     label: bestCategory,
-    confidence: bestConfidence,
+    confidence: bestScore,
     rawPredictions: predictions,
-    screenWarning
+    screenWarning,
   }
 }
 

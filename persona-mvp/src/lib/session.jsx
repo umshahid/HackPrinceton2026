@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { updateDailyMetrics, saveInteraction, saveMeal } from './storage.js'
-import { estimateMealNutrition, summarizeInteraction } from './geminiApi.js'
+import { updateDailyMetrics, saveInteraction, saveMeal, updatePerson } from './storage.js'
+import { estimateMealNutrition, summarizeInteraction, extractPersonName } from './geminiApi.js'
 import { matchOrCreatePerson } from './models/faceDetector.js'
 
 // ---------------------------------------------------------------------------
@@ -43,10 +43,14 @@ export function SessionProvider({ children }) {
   const [sessionStartTime, setSessionStartTime] = useState(null)
   const [currentScene, setCurrentScene] = useState(null)
   const [promptQueue, setPromptQueue] = useState([])
+  const [lastSavedAt, setLastSavedAt] = useState(null)
 
   const stateRef = useRef(state)
   const pollIntervalRef = useRef(pollInterval)
   const timerRef = useRef(null)
+  const sceneAccumRef = useRef({ OUTSIDE: 0, INSIDE: 0, SCREEN: 0 })
+  const sceneFlushCounterRef = useRef(0)
+  const SCENE_FLUSH_EVERY = 30 // flush accumulated scene time every 30 polls
   const foodConsecutiveCount = useRef(0)
   const foodAbsentCount = useRef(0)
   const faceConsecutiveCount = useRef(0)
@@ -71,7 +75,19 @@ export function SessionProvider({ children }) {
 
   const activePrompt = promptQueue[0] || null
 
-  const todayStr = () => new Date().toISOString().slice(0, 10)
+  const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
+
+  const flushSceneMetrics = useCallback(async () => {
+    const accum = sceneAccumRef.current
+    const categories = ['OUTSIDE', 'INSIDE', 'SCREEN']
+    for (const cat of categories) {
+      if (accum[cat] > 0) {
+        await updateDailyMetrics(todayStr(), cat, accum[cat])
+        accum[cat] = 0
+      }
+    }
+    setLastSavedAt(Date.now())
+  }, [])
 
   // ---------------------------------------------------------------------------
   // Poll frame — reads detection functions from window.__persona
@@ -98,12 +114,15 @@ export function SessionProvider({ children }) {
       if (p.classifyScene) {
         try {
           const scene = await p.classifyScene(imageData)
-          console.log(`[Persona] Scene: ${scene}`)
           setCurrentScene(scene)
           const validCategories = ['OUTSIDE', 'INSIDE', 'SCREEN']
           if (validCategories.includes(scene)) {
-            const minutesToAdd = pollIntervalRef.current / 60
-            await updateDailyMetrics(todayStr(), scene, minutesToAdd)
+            sceneAccumRef.current[scene] += pollIntervalRef.current / 60
+          }
+          sceneFlushCounterRef.current += 1
+          if (sceneFlushCounterRef.current >= SCENE_FLUSH_EVERY) {
+            await flushSceneMetrics()
+            sceneFlushCounterRef.current = 0
           }
         } catch (err) { console.warn('[Persona] Scene error:', err) }
       }
@@ -278,7 +297,18 @@ export function SessionProvider({ children }) {
           try {
             const { person } = await matchOrCreatePerson(interaction._descriptor, interaction._thumbnail)
             interaction.personId = person.id
-            console.log(`[Persona] Matched/created person id=${person.id}`)
+            console.log(`[Persona] Matched/created person id=${person.id} name="${person.name}"`)
+            if (/^Person \d+$/.test(person.name)) {
+              try {
+                const extractedName = await extractPersonName(interaction.transcript)
+                if (extractedName) {
+                  await updatePerson(person.id, { name: extractedName })
+                  console.log(`[Persona] Auto-named person ${person.id} → "${extractedName}"`)
+                }
+              } catch (err) {
+                console.warn('[Persona] extractPersonName failed:', err)
+              }
+            }
           } catch (err) {
             console.warn('[Persona] matchOrCreatePerson failed:', err)
           }
@@ -289,6 +319,7 @@ export function SessionProvider({ children }) {
         try {
           console.log(`[Persona] Saving interaction id=${interaction.id} personId=${interaction.personId} transcriptLen=${interaction.transcript.length}`)
           await saveInteraction(interaction)
+          setLastSavedAt(Date.now())
           console.log('[Persona] saveInteraction SUCCESS')
         } catch (err) {
           console.error('[Persona] saveInteraction FAILED:', err)
@@ -325,6 +356,8 @@ export function SessionProvider({ children }) {
     speechAbsentCount.current = 0
     currentInteraction.current = null
     mealPendingRef.current = false
+    sceneAccumRef.current = { OUTSIDE: 0, INSIDE: 0, SCREEN: 0 }
+    sceneFlushCounterRef.current = 0
 
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => onPollFrame(), 2000)
@@ -332,6 +365,7 @@ export function SessionProvider({ children }) {
 
   const stopSession = useCallback(async () => {
     console.log('[Persona] stopSession called — currentInteraction exists:', !!currentInteraction.current)
+    await flushSceneMetrics()
     setState(SessionState.STOPPED)
     if (timerRef.current) {
       clearTimeout(timerRef.current)
@@ -376,7 +410,18 @@ export function SessionProvider({ children }) {
         try {
           const { person } = await matchOrCreatePerson(interaction._descriptor, interaction._thumbnail)
           interaction.personId = person.id
-          console.log('[Persona] stopSession: matched person id=', person.id)
+          console.log('[Persona] stopSession: matched person id=', person.id, 'name=', person.name)
+          if (/^Person \d+$/.test(person.name)) {
+            try {
+              const extractedName = await extractPersonName(interaction.transcript)
+              if (extractedName) {
+                await updatePerson(person.id, { name: extractedName })
+                console.log(`[Persona] stopSession: auto-named person ${person.id} → "${extractedName}"`)
+              }
+            } catch (err) {
+              console.warn('[Persona] stopSession: extractPersonName failed:', err)
+            }
+          }
         } catch (err) {
           console.warn('[Persona] stopSession: matchOrCreatePerson failed:', err)
         }
@@ -387,6 +432,7 @@ export function SessionProvider({ children }) {
       try {
         console.log(`[Persona] stopSession: saving interaction id=${interaction.id} transcriptLen=${interaction.transcript.length}`)
         await saveInteraction(interaction)
+        setLastSavedAt(Date.now())
         console.log('[Persona] stopSession: saveInteraction SUCCESS')
       } catch (err) {
         console.error('[Persona] stopSession: saveInteraction FAILED:', err)
@@ -395,7 +441,7 @@ export function SessionProvider({ children }) {
     } else {
       console.warn('[Persona] stopSession: no active interaction to save — was the interaction started? Check face/speech detection logs above.')
     }
-  }, [])
+  }, [flushSceneMetrics])
 
   const pauseSession = useCallback(() => {
     setState(SessionState.PAUSED)
@@ -421,6 +467,7 @@ export function SessionProvider({ children }) {
     promptQueue,
     dismissPrompt,
     activePrompt,
+    lastSavedAt,
   }
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
