@@ -4,10 +4,10 @@ import { useSession } from '../../lib/session'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 const COLORS = {
-  OUTSIDE: '#4ade80',
-  INSIDE: '#60a5fa',
-  SCREEN: '#fbbf24',
-  UNCERTAIN: '#8888a0',
+  OUTSIDE: '#55624d',
+  INSIDE: '#3b82f6',
+  SCREEN: '#f59e0b',
+  UNCERTAIN: '#9ca3af',
 }
 
 const LABELS = {
@@ -20,27 +20,29 @@ const styles = {
   container: {
     padding: 16,
     minHeight: '100%',
+    background: 'var(--surface)',
   },
   sectionTitle: {
-    color: '#e8e8ed',
+    color: '#191c18',
     fontSize: 16,
     fontWeight: 600,
+    fontFamily: 'Manrope, sans-serif',
     marginBottom: 12,
     marginTop: 20,
   },
   card: {
-    backgroundColor: '#16161f',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: '1.5rem',
     padding: 16,
     marginBottom: 12,
-    border: '1px solid #2a2a3a',
+    boxShadow: '0 4px 40px rgba(85,98,77,0.06)',
   },
   barContainer: {
     display: 'flex',
-    borderRadius: 8,
+    borderRadius: 9999,
     overflow: 'hidden',
-    height: 32,
-    backgroundColor: '#2a2a3a',
+    height: 28,
+    backgroundColor: '#ecefe8',
     marginBottom: 10,
   },
   barSegment: {
@@ -48,10 +50,10 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 600,
-    color: '#0a0a0f',
-    transition: 'width 0.3s ease',
+    color: '#ffffff',
+    transition: 'width 400ms ease-in-out',
     minWidth: 0,
   },
   labelRow: {
@@ -62,8 +64,11 @@ const styles = {
   labelItem: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: '0.625rem',
     color: '#8888a0',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
   },
   labelDot: {
     display: 'inline-block',
@@ -78,7 +83,7 @@ const styles = {
     alignItems: 'center',
     gap: 6,
     padding: '6px 14px',
-    borderRadius: 20,
+    borderRadius: 9999,
     fontSize: 13,
     fontWeight: 600,
   },
@@ -96,46 +101,46 @@ const styles = {
     marginBottom: 8,
   },
   targetLabel: {
-    color: '#e8e8ed',
+    color: '#191c18',
     fontSize: 13,
   },
   targetValue: {
-    color: '#8888a0',
+    color: '#444841',
     fontSize: 12,
   },
   progressBarOuter: {
     height: 8,
-    backgroundColor: '#2a2a3a',
-    borderRadius: 4,
+    backgroundColor: '#ecefe8',
+    borderRadius: 9999,
     overflow: 'hidden',
     marginBottom: 14,
   },
   progressBarInner: {
     height: '100%',
-    borderRadius: 4,
-    transition: 'width 0.3s ease',
+    borderRadius: 9999,
+    transition: 'width 400ms ease-in-out',
   },
   targetInput: {
     width: 56,
     padding: '3px 6px',
     borderRadius: 6,
-    border: '1px solid #2a2a3a',
-    backgroundColor: '#0a0a0f',
-    color: '#e8e8ed',
+    border: '1px solid rgba(197,200,190,0.5)',
+    backgroundColor: '#f2f4ed',
+    color: '#191c18',
     fontSize: 12,
     textAlign: 'right',
     outline: 'none',
   },
   coverageWarning: {
-    backgroundColor: '#fbbf2420',
-    color: '#fbbf24',
+    backgroundColor: 'rgba(245,158,11,0.10)',
+    color: '#92400e',
     fontSize: 12,
     padding: '8px 12px',
     borderRadius: 8,
     marginBottom: 12,
   },
   emptyState: {
-    color: '#8888a0',
+    color: '#444841',
     textAlign: 'center',
     padding: '60px 20px',
     fontSize: 14,
@@ -162,11 +167,11 @@ function getDayName(dateStr) {
 }
 
 const TOOLTIP_STYLE = {
-  backgroundColor: '#16161f',
-  border: '1px solid #2a2a3a',
+  backgroundColor: '#ffffff',
   borderRadius: 8,
-  color: '#e8e8ed',
+  color: '#191c18',
   fontSize: 12,
+  boxShadow: '0 4px 20px rgba(85,98,77,0.10)',
 }
 
 export default function MetricsTab() {
@@ -360,7 +365,7 @@ export default function MetricsTab() {
             style={{
               ...styles.progressBarInner,
               width: `${screenProgress}%`,
-              backgroundColor: screenOver ? '#f87171' : COLORS.SCREEN,
+              backgroundColor: screenOver ? '#dc2626' : COLORS.SCREEN,
             }}
           />
         </div>
@@ -371,9 +376,9 @@ export default function MetricsTab() {
       <div style={{ ...styles.card, ...styles.chartContainer }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={weekMetrics.map((d) => ({ ...d, day: getDayName(d.date) }))}>
-            <XAxis dataKey="day" tick={{ fill: '#8888a0', fontSize: 12 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="day" tick={{ fill: '#444841', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis
-              tick={{ fill: '#8888a0', fontSize: 11 }}
+              tick={{ fill: '#444841', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => formatMinutes(v)}

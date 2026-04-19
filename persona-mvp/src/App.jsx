@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { Users, BarChart2, UtensilsCrossed } from 'lucide-react'
 import { SessionProvider, useSession, SessionState } from './lib/session'
 import { getConsent, saveConsent } from './lib/storage'
 import { useCamera } from './lib/camera'
@@ -19,14 +20,20 @@ function ConsentScreen({ onConsent }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', minHeight: '100vh', padding: '24px',
-      maxWidth: '480px', margin: '0 auto',
+      justifyContent: 'center', minHeight: '100vh', padding: '32px 24px',
+      maxWidth: '480px', margin: '0 auto', background: 'var(--surface)',
     }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '8px', fontWeight: 700 }}>Persona</h1>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '14px' }}>
+      <h1 style={{
+        fontSize: '36px', marginBottom: '8px', fontWeight: 700,
+        fontFamily: 'Manrope, sans-serif', color: 'var(--primary)',
+      }}>Persona</h1>
+      <p style={{ color: 'var(--on-surface-variant)', marginBottom: '32px', fontSize: '14px' }}>
         Privacy disclosure
       </p>
-      <div className="card" style={{ marginBottom: '32px', lineHeight: '1.6', fontSize: '14px', color: 'var(--text-secondary)' }}>
+      <div className="card" style={{
+        marginBottom: '32px', lineHeight: '1.7', fontSize: '14px',
+        color: 'var(--on-surface-variant)',
+      }}>
         Persona will use your camera and microphone to automatically log conversations,
         track where you spend your time, and identify meals. Faces and voice of people
         you speak with may be captured. All processing happens on your device. Transcripts
@@ -34,7 +41,7 @@ function ConsentScreen({ onConsent }) {
       </div>
       <button
         className="btn-primary"
-        style={{ width: '100%', padding: '14px' }}
+        style={{ width: '100%', padding: '14px', borderRadius: '9999px', fontSize: '15px' }}
         onClick={async () => {
           await saveConsent(new Date().toISOString())
           onConsent()
@@ -190,9 +197,9 @@ function AppContent() {
   const isStopped = state === SessionState.STOPPED
 
   const tabs = [
-    { id: 'people', icon: '👤', label: 'People' },
-    { id: 'metrics', icon: '📊', label: 'Metrics' },
-    { id: 'meals', icon: '🍽', label: 'Meals' },
+    { id: 'people', Icon: Users, label: 'People' },
+    { id: 'metrics', Icon: BarChart2, label: 'Metrics' },
+    { id: 'meals', Icon: UtensilsCrossed, label: 'Meals' },
   ]
 
   return (
@@ -200,7 +207,8 @@ function AppContent() {
       {/* Header */}
       <header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', borderBottom: '1px solid var(--border)',
+        padding: '12px 16px', backgroundColor: 'var(--surface-card)',
+        boxShadow: '0 1px 0 rgba(197,200,190,0.5)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {isRunning ? (
@@ -219,16 +227,16 @@ function AppContent() {
           )}
         </div>
 
-        <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Persona</h1>
+        <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, fontFamily: 'Manrope, sans-serif', color: 'var(--primary)' }}>Persona</h1>
 
         <div>
           {isRunning ? (
-            <button className="btn-danger" style={{ fontSize: '12px', padding: '6px 12px' }} onClick={handleStopSession}>
-              End Session
+            <button className="btn-danger" style={{ fontSize: '12px', padding: '6px 14px', borderRadius: 9999 }} onClick={handleStopSession}>
+              End
             </button>
           ) : (
-            <button className="btn-primary" style={{ fontSize: '12px', padding: '6px 12px' }} onClick={handleStartSession}>
-              Start Day
+            <button className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px', borderRadius: 9999 }} onClick={handleStartSession}>
+              Start
             </button>
           )}
         </div>
@@ -236,7 +244,7 @@ function AppContent() {
 
       {/* Camera preview */}
       <div style={{
-        width: '100%', aspectRatio: '16 / 9', background: 'var(--bg-card)',
+        width: '100%', aspectRatio: '16 / 9', background: 'var(--surface-nest)',
         position: 'relative', overflow: 'hidden',
       }}>
         <video
@@ -266,16 +274,16 @@ function AppContent() {
       {/* Model loading overlay */}
       {modelsLoading && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(10,10,15,0.92)',
+          position: 'fixed', inset: 0, background: 'rgba(248,250,243,0.92)',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', zIndex: 50, gap: '16px',
         }}>
           <div style={{
-            width: 40, height: 40, border: '3px solid var(--border)',
-            borderTopColor: 'var(--accent)', borderRadius: '50%',
+            width: 40, height: 40, border: '3px solid var(--surface-nest)',
+            borderTopColor: 'var(--primary)', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+          <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Loading Persona intelligence models…
           </p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -283,7 +291,7 @@ function AppContent() {
       )}
 
       {/* Tab content */}
-      <div style={{ padding: '16px', paddingBottom: '76px', overflowY: 'auto' }}>
+      <div style={{ padding: '0', paddingBottom: '80px', overflowY: 'auto', background: 'var(--surface)' }}>
         {activeTab === 'people' && <PeopleTab />}
         {activeTab === 'metrics' && <MetricsTab />}
         {activeTab === 'meals' && <MealsTab />}
@@ -303,25 +311,45 @@ function AppContent() {
       {/* Bottom navigation */}
       <nav style={{
         position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        maxWidth: 480, width: '100%', height: 60, display: 'flex',
-        background: 'var(--bg-card)', borderTop: '1px solid var(--border)',
-        zIndex: 40,
+        maxWidth: 480, width: '100%', height: 64, display: 'flex',
+        background: 'var(--surface-card)',
+        boxShadow: '0 -1px 0 rgba(197,200,190,0.5)',
+        zIndex: 100,
       }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 4, background: 'none', border: 'none',
-              color: activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)',
-              fontSize: '12px', cursor: 'pointer', fontWeight: activeTab === tab.id ? 600 : 400,
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
+        {tabs.map(({ id, Icon, label }) => {
+          const active = activeTab === id
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: 3, background: 'none', border: 'none',
+                color: active ? 'var(--primary)' : 'var(--on-surface-variant)',
+                fontSize: '10px', cursor: 'pointer',
+                fontWeight: active ? 700 : 500,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                letterSpacing: '0.02em',
+                transition: 'color 400ms ease-in-out',
+                position: 'relative',
+                paddingBottom: 10,
+              }}
+            >
+              <Icon
+                size={22}
+                strokeWidth={active ? 2 : 1.5}
+                style={{ transition: 'stroke-width 400ms ease-in-out' }}
+              />
+              {label}
+              {active && (
+                <span style={{
+                  position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)',
+                  width: 4, height: 4, borderRadius: '50%', background: 'var(--primary)',
+                }} />
+              )}
+            </button>
+          )
+        })}
       </nav>
 
       {/* Pulse animation */}
