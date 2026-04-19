@@ -38,6 +38,21 @@
     <key>GEMINI_API_KEY</key>
     <string>AIzaSyCRVm4feuXWY1mAREO4SgvyMlKZQDzPmC4</string>
 
+    <!-- Allow plain ws:// to local frame server (no TLS) -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+
+    <!-- Local network access prompt -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Face Memory streams camera frames to the Persona web app on your local network.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_http._tcp</string>
+    </array>
+
     <!-- ========== Permissions ========== -->
     <key>NSCameraUsageDescription</key>
     <string>Face Memory uses the camera to detect faces during conversations so it can recognize people you've met before.</string>

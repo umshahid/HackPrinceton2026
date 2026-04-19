@@ -61,7 +61,7 @@ function AppContent() {
   const session = useSession()
   const { state, startSession, stopSession, activePrompt, dismissPrompt, currentScene } = session
 
-  const { videoRef, captureFrame, cameraReady } = useCamera()
+  const { videoRef, captureFrame, cameraReady, frameUrl } = useCamera()
   const { speechActive, startAudioMonitoring, stopAudioMonitoring } = useSpeechActivity()
   const { transcript, startTranscription, stopTranscription, isListening } = useTranscription()
 
@@ -74,15 +74,7 @@ function AppContent() {
   const overlayCanvasRef = useRef(null)
   const faceBoxRef = useRef(null)
 
-  // Mirror camera stream to visible preview
-  useEffect(() => {
-    if (previewRef.current && videoRef.current) {
-      const stream = videoRef.current.srcObject
-      if (stream) {
-        previewRef.current.srcObject = stream
-      }
-    }
-  }, [cameraReady, videoRef])
+  // (Camera stream mirroring removed — frames arrive via WebSocket)
 
   // Load models on first session start
   const handleStartSession = useCallback(async () => {
@@ -131,16 +123,13 @@ function AppContent() {
     if (!faceResult || !faceResult.box) return
 
     const { box } = faceResult
-    // Scale from source video resolution to displayed size
-    const videoW = video.videoWidth || 640
-    const videoH = video.videoHeight || 480
-    const scaleX = rect.width / videoW
-    const scaleY = rect.height / videoH
+    // Scale from source image resolution to displayed size
+    const srcW = video.naturalWidth || video.videoWidth || 640
+    const srcH = video.naturalHeight || video.videoHeight || 480
+    const scaleX = rect.width / srcW
+    const scaleY = rect.height / srcH
 
-    // Mirror the x coordinate (video is mirrored via scaleX(-1))
-    const mirroredX = videoW - box.x - box.width
-
-    const dx = mirroredX * scaleX
+    const dx = box.x * scaleX
     const dy = box.y * scaleY
     const dw = box.width * scaleX
     const dh = box.height * scaleY
@@ -247,10 +236,11 @@ function AppContent() {
         width: '100%', aspectRatio: '16 / 9', background: 'var(--surface-nest)',
         position: 'relative', overflow: 'hidden',
       }}>
-        <video
+        <img
           ref={previewRef}
-          autoPlay playsInline muted
-          style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
+          src={frameUrl || undefined}
+          alt="Glasses camera feed"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <canvas
           ref={overlayCanvasRef}
@@ -266,7 +256,7 @@ function AppContent() {
             alignItems: 'center', justifyContent: 'center',
             color: 'var(--text-secondary)', fontSize: '14px',
           }}>
-            Camera initializing...
+            Waiting for glasses camera feed…
           </div>
         )}
       </div>

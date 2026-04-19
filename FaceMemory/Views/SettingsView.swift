@@ -8,6 +8,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var stream: GlassesStreamManager
     @EnvironmentObject private var transcription: TranscriptionService
+    @ObservedObject private var frameClient = FrameStreamClient.shared
 
     private var apiKeyConfigured: Bool {
         if let key = Bundle.main.object(forInfoDictionaryKey: "GEMINI_API_KEY") as? String,
@@ -51,6 +52,29 @@ struct SettingsView: View {
                             Text(transcription.currentTranscript).font(.footnote)
                         }
                     }
+                }
+
+                Section("Persona Frame Server") {
+                    TextField("Mac IP address", text: $frameClient.serverHost)
+                        .keyboardType(.decimalPad)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    LabeledContent("Port", value: "\(frameClient.serverPort)")
+                    LabeledContent("Status", value: frameClient.statusMessage)
+
+                    Toggle("Stream to Persona", isOn: $frameClient.streamingEnabled)
+
+                    if frameClient.isConnected {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Connected")
+                        }
+                    }
+
+                    Text("Enter your Mac's local IP (e.g. 192.168.1.42). The frame server must be running on port \(frameClient.serverPort).")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
                 Section("Gemini VLM") {

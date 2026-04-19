@@ -49,6 +49,74 @@ Open `http://localhost:5173` in Chrome (required for Web Speech API). Accept the
 | Storage | IndexedDB via localforage |
 | Charts | Recharts |
 
+## Connecting the iPhone App (Glasses Camera)
+
+The app receives camera frames from an external source (e.g. an iPhone running the Meta Ray-Ban glasses camera stream) via WebSocket instead of the browser webcam.
+
+### 1. Start the frame server
+
+In a separate terminal:
+
+```bash
+npm run frame-server
+```
+
+This starts a WebSocket server on `0.0.0.0:3001`.
+
+### 2. Start the frontend dev server
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173` in Chrome as usual.
+
+### 3. Find your Mac's local IP
+
+```bash
+# macOS
+ipconfig getifaddr en0
+```
+
+### 4. Configure the iPhone app
+
+Point the iPhone app's WebSocket output to:
+
+```
+ws://<mac-ip>:3001/ingest
+```
+
+The iPhone should send raw JPEG bytes as binary WebSocket messages. Each message = one frame.
+
+### 5. Test without the iPhone
+
+You can simulate frame input from the Mac using `wscat`:
+
+```bash
+# Install wscat if needed
+npx wscat -c ws://localhost:3001/ingest --binary < /path/to/test.jpg
+```
+
+Or send a frame with a one-liner:
+
+```bash
+# Grab a test JPEG (any image works)
+curl -s -o /tmp/test.jpg https://picsum.photos/640/480
+
+# Send it (requires wscat)
+npx wscat -c ws://localhost:3001/ingest -x "$(cat /tmp/test.jpg)" --binary
+```
+
+The frame should appear in the browser preview within a second.
+
+### WebSocket endpoints
+
+| Path | Direction | Purpose |
+|------|-----------|---------|
+| `/ingest` | iPhone → Server | Push JPEG frames (binary) |
+| `/stream` | Server → Frontend | Subscribe to frame stream |
+| `/latest-frame` | HTTP GET | Fetch latest JPEG (for debugging) |
+
 ## Tabs
 
 - **People** — Grid of recognized persons. Tap for interaction history with AI summaries, topic chips, action items, and full transcripts.

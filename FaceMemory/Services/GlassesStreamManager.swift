@@ -199,6 +199,8 @@ final class GlassesStreamManager: NSObject, ObservableObject {
         frameCounter += 1
         if frameCounter % frameThrottle == 0 {
             latestFrame = image
+            // Forward to persona-mvp frame server if streaming is enabled
+            FrameStreamClient.shared.sendFrame(image)
         }
     }
 
